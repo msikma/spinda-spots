@@ -163,7 +163,7 @@
         const { protocol, host, pathname } = window.location
         const { value, isShiny, enableTest } = state
         const base = `${protocol}//${host}${pathname}`
-        return `${base}${objToParams({ value, isShiny, enableTest })}`
+        return `${base}${objToParams({ value: castHex(value), isShiny, enableTest })}`
       }
 
       // Returns a number represented as hexadecimal (without prefix) padded to 8 characters.
