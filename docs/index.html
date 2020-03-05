@@ -1,0 +1,263 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>PokéSprite - Spinda painter test</title>
+  </head>
+  <style>
+    #target {
+      width: 68px;
+      height: 56px;
+      position: relative;
+    }
+    #target img {
+      position: absolute;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      width: 100%;
+      height: auto;
+    }
+    #target .filled {
+      clip-path: url(#spinda_clipping_path);
+    }
+    #target .path {
+      position: relative;
+      z-index: 10;
+    }
+    #target.testing-off .path-test {
+      display: none;
+    }
+    #target.type-regular .shiny {
+      visibility: hidden;
+    }
+    #target.type-shiny .regular {
+      visibility: hidden;
+    }
+  </style>
+  <body>
+    
+    <div class="spinda-painter">
+      <form action="index.html" method="get">
+        <table border="2">
+          <tr>
+            <td>
+              <div id="target">
+                <img class="spinda blank regular" src="./regular/spinda-blank.png" width="68" height="56" />
+                <img class="spinda filled regular" src="./regular/spinda-filled.png" width="68" height="56" />
+                <img class="spinda blank shiny" src="./shiny/spinda-blank.png" width="68" height="56" />
+                <img class="spinda filled shiny" src="./shiny/spinda-filled.png" width="68" height="56" />
+                <svg class="path" id="target_path" width="68" height="56">
+                  <circle class="path-test" id="value_a_test" cx="30" cy="35" r="3" fill="red" />
+                  <circle class="path-test" id="value_b_test" cx="39" cy="36" r="3" fill="blue" />
+                  <circle class="path-test" id="value_c_test" cx="28" cy="42" r="2" fill="green" />
+                  <circle class="path-test" id="value_d_test" cx="35" cy="43" r="2" fill="purple" />
+                  <defs>
+                    <clipPath id="spinda_clipping_path">
+                      <circle id="value_a" cx="30" cy="35" r="3" />
+                      <circle id="value_b" cx="39" cy="36" r="3" />
+                      <circle id="value_c" cx="28" cy="42" r="2" />
+                      <circle id="value_d" cx="35" cy="43" r="2" />
+                    </clipPath>
+                  </defs>
+                </svg>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <label for="input_value">
+                Value (hex): 0x<input type="text" id="input_value" name="input_value" /><button>Update</button><br />
+              </label>
+              <label for="bool_testing">
+                <input type="checkbox" id="bool_testing" name="bool_testing" /> Testing enabled<br />
+              </label>
+              <label for="bool_shiny">
+                <input type="checkbox" id="bool_shiny" name="bool_shiny" /> Shiny Pokémon
+              </label>
+            </td>
+          </tr>
+        </table>
+        <p>PokéSprite Spinda Painter proof of concept. By dada78641.</p>
+        <p>Inspired by the <a href="http://pokemon.thundaga.com/spinda/Spinda%20Painter.htm">Thundaga Spinda Painter</a>, originally written by elouai.com, Silly_TomcaT and GatorShark.</p>
+      </form>
+    </div>
+
+    <script>
+      const state = {
+        value: 0x88889898,
+        isShiny: false,
+        enableTest: false,
+        inputMap: {
+          input_value: 'value'
+        },
+        boolMap: {
+          bool_shiny: 'isShiny',
+          bool_testing: 'enableTest'
+        },
+        spotOffsets: {
+          a: { xMin: 27, yMin: 31, xMax: 32, yMax: 38 },
+          b: { xMin: 36, yMin: 34, xMax: 41, yMax: 38 },
+          c: { xMin: 26, yMin: 38, xMax: 32, yMax: 45 },
+          d: { xMin: 32, yMin: 39, xMax: 38, yMax: 46 }
+        }
+      }
+      const target = document.querySelector('#target')
+      
+      function update() {
+        const spots = offsetCoords(getCoords(state.value), state.spotOffsets)
+        for (let [n, coords] of Object.entries(spots)) {
+          for (let [k, v] of Object.entries(coords)) {
+            document.querySelector(`#value_${n}`).setAttribute(k, v)
+            document.querySelector(`#value_${n}_test`).setAttribute(k, v)
+          }
+        }
+
+        target.classList.toggle('testing-on', state.enableTest)
+        target.classList.toggle('testing-off', !state.enableTest)
+        target.classList.toggle('type-shiny', state.isShiny)
+        target.classList.toggle('type-regular', !state.isShiny)
+
+        for (let [k, v] of Object.entries(state.boolMap)) {
+          document.querySelector(`#${k}`).checked = state[v];
+        }
+
+        for (let [k, v] of Object.entries(state.inputMap)) {
+          if (k === 'input_value') {
+            document.querySelector(`#${k}`).value = castHex(state[v]);
+          }
+          else {
+            document.querySelector(`#${k}`).value = state[v];
+          }
+        }
+
+        console.log('Updated', new Date().getTime())
+        console.log('State', state)
+        console.log('Spots', spots)
+        console.log('====')
+      }
+
+      // Returns a number represented as hexadecimal (without prefix) padded to 8 characters.
+      function castHex(value, padding = 8) {
+        const hex = Number(value).toString(16).toUpperCase()
+        const padStr = '0'.repeat(padding - hex.length)
+        return `${padStr}${hex}`
+      }
+
+      /**
+       * Modifies a Spinda's spot coordinates to display correctly on its box sprite.
+       *
+       * This takes the result of getCoords() and returns a new object with modified values
+       * that can be transferred directly to the four spots in #target. The given offsets
+       * represent the min/max values for each coordinate, defined in state.spotOffsets.
+       *
+       * The maxRange value represents the maximum range of a spot's original coordinates.
+       * This is 15, as each coordinate ranges from 0x0 to 0xf.
+       */
+      function offsetCoords(coords, offsets, maxRange = 15) {
+        const newCoords = {}
+        for (let [k, v] of Object.entries(coords)) {
+          const offset = offsets[k]
+          const xMaxRange = offset.xMax - offset.xMin
+          const yMaxRange = offset.yMax - offset.yMin
+          const xRange = (v.cx / maxRange) * xMaxRange
+          const yRange = (v.cy / maxRange) * yMaxRange
+          newCoords[k] = { cx: offset.xMin + Math.round(xRange), cy: offset.yMin + Math.round(yRange) }
+        }
+        return newCoords
+      }
+
+      /**
+       * Converts a Spinda's personality value into an object of coordinates for its four spots.
+       *
+       * This code splits the personality value into four sections of X/Y coordinates,
+       * which is only half the work needed to display the spots correctly. These coordinates
+       * are only correct for the spots of the original Gen III Spinda sprite, and still need
+       * to be modified to work correctly for the box sprite displayed in this application,
+       * which is much smaller. For that, see offsetCoords().
+       *
+       * The personality value value is a double word ranging from 0x00000000 to 0xFFFFFFFF.
+       * This dword is cut up into four bytes ranging from 0x00 to 0xFF.
+       * Each byte represents a set of X and Y coordinates, each one ranging from 0x0 to 0xF.
+       *
+       * For e.g. 0x12abcdef, this outputs:
+       *
+       *   { a: { cx: 0xf, cy: 0xe },
+       *     b: { cx: 0xd, cy: 0xc },
+       *     c: { cx: 0xb, cy: 0xa },
+       *     d: { cx: 0x2, cy: 0x1 } }
+       *
+       * The spots are labeled a, b, c, d:
+       *
+       *    a: top left,
+       *    b: top right,
+       *    c: bottom left,
+       *    d: bottom right.
+       */
+      function getCoords(value) {
+        // For e.g. value 0x12abcdef:
+        const valueA = (value & 0x000000ff) >> 0  // 0xef
+        const valueB = (value & 0x0000ff00) >> 8  // 0xcd
+        const valueC = (value & 0x00ff0000) >> 16 // 0xab
+        const valueD = (value & 0xff000000) >> 24 // 0x12
+        
+        // For e.g. value 0xab, { cx: 0xb, cy: 0xa }.
+        const splitValue = subValue => ({
+          cx: (subValue & 0x0f) >> 0,
+          cy: (subValue & 0xf0) >> 4
+        })
+
+        // Split the values up into X/Y coordinates.
+        return {
+          a: splitValue(valueA),
+          b: splitValue(valueB),
+          c: splitValue(valueC),
+          d: splitValue(valueD)
+        }
+      }
+
+      // Listen for changes to the configuration form fields.
+      function listenFormFields() {
+        // Boolean checkboxes
+        const checkboxes = [...document.querySelectorAll('[type="checkbox"]')]
+        checkboxes.map(n => n.addEventListener('change', function() {
+          for (let [k, v] of Object.entries(state.boolMap)) {
+            if (this.getAttribute('id') === k) {
+              state[v] = this.checked
+              update()
+              return
+            }
+          }
+        }))
+        // Text input fields
+        const inputs = [...document.querySelectorAll('[type="text"]')]
+        inputs.map(n => n.addEventListener('input', function() {
+          for (let [k, v] of Object.entries(state.inputMap)) {
+            if (this.getAttribute('id') === k) {
+              if (k === 'input_value') {
+                state[v] = parseInt(this.value, 16)
+              }
+              else {
+                state[v] = this.value
+              }
+              update()
+              return
+            }
+          }
+        }))
+      }
+      
+      function setShiny(value) {
+        state.isShiny = Boolean(value)
+        update()
+      }
+
+      function setValue(value) {
+        state.value = value
+        update()
+      }
+
+      listenFormFields()
+      update()
+    </script>
+  </body>
+</html>
