@@ -36,7 +36,7 @@ See [PokéSprite](https://github.com/msikma/pokesprite) for more details.
 
 ## Related links
 
-* **[PokéSprite](https://github.com/msikma/pokesprite)** – Pokémon sprite database
+* **[PokéSprite](https://github.com/msikma/pokesprite)** – Pokémon sprite database (see [PR #56](https://github.com/msikma/pokesprite/pull/56))
 * [Thundaga Spinda Painter](http://pokemon.thundaga.com/spinda/Spinda%20Painter.htm) – The original Spinda painter that this is based on
 
 ## License
