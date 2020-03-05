@@ -66,7 +66,7 @@
           <tr>
             <td>
               <label for="input_value">
-                Value (hex): 0x<input type="text" id="input_value" name="input_value" /><br />
+                Value (hex): 0x<input type="text" id="input_value" name="input_value" /><button id="button_random">Random</button><br />
               </label>
               <label for="bool_testing">
                 <input type="checkbox" id="bool_testing" name="bool_testing" /> Testing enabled<br />
@@ -228,6 +228,7 @@
             }
           }
         }))
+
         // Text input fields
         const inputs = [...document.querySelectorAll('[type="text"]')]
         inputs.map(n => n.addEventListener('input', function() {
@@ -244,6 +245,18 @@
             }
           }
         }))
+
+        // The randomizer button
+        document.querySelector('#button_random').addEventListener('click', function(ev) {
+          state.value = getRandomValue()
+          update()
+          ev.preventDefault()
+        })
+      }
+
+      // Returns a random value between 0x00000000 and 0xffffffff.
+      function getRandomValue() {
+        return Math.round(Math.random() * 0xffffffff)
       }
       
       function setShiny(value) {
