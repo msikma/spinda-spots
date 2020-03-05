@@ -33,6 +33,13 @@
     #target.type-shiny .regular {
       visibility: hidden;
     }
+    label span:first-child {
+      width: 7em;
+      display: inline-block;
+    }
+    .hidden {
+      visibility: hidden;
+    }
   </style>
   <body>
     
@@ -66,7 +73,10 @@
           <tr>
             <td>
               <label for="input_value">
-                Value (hex): 0x<input type="text" id="input_value" name="input_value" /><button id="button_random">Random</button><br />
+                <span>Value (hex):</span> 0x<input type="text" id="input_value" name="input_value" /><button id="button_random">Random</button><br />
+              </label>
+              <label for="permanent_link">
+                <span>Permanent link:</span> <span class="hidden">0x</span><input readonly="readonly" type="text" id="permanent_link" name="permanent_link" /><br />
               </label>
               <label for="bool_testing">
                 <input type="checkbox" id="bool_testing" name="bool_testing" /> Testing enabled<br />
@@ -84,9 +94,9 @@
 
     <script>
       const state = {
-        value: 0x88889898,
-        isShiny: false,
-        enableTest: false,
+        value: 0,
+        isShiny: null,
+        enableTest: null,
         inputMap: {
           input_value: 'value'
         },
@@ -100,6 +110,11 @@
           c: { xMin: 26, yMin: 38, xMax: 32, yMax: 45 },
           d: { xMin: 32, yMin: 39, xMax: 38, yMax: 46 }
         }
+      }
+      const initialState = {
+        value: 0x88889898,
+        isShiny: false,
+        enableTest: false
       }
       const target = document.querySelector('#target')
       
@@ -130,10 +145,25 @@
           }
         }
 
+        document.querySelector('#permanent_link').value = getPermLink()
+
         console.log('Updated', new Date().getTime())
         console.log('State', state)
         console.log('Spots', spots)
         console.log('====')
+      }
+
+      // Converts an object to URI GET parameters. Only works with a flat object of strings.
+      function objToParams(obj) {
+        return `?${Object.entries(obj).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&')}`
+      }
+
+      // Returns a new permanent link for the current app state.
+      function getPermLink() {
+        const { protocol, host, pathname } = window.location
+        const { value, isShiny, enableTest } = state
+        const base = `${protocol}//${host}${pathname}`
+        return `${base}${objToParams({ value, isShiny, enableTest })}`
       }
 
       // Returns a number represented as hexadecimal (without prefix) padded to 8 characters.
@@ -254,6 +284,21 @@
         })
       }
 
+      // Sets the initial state of the app, either from the hardcoded defaults or the URL.
+      function setInitialState() {
+        const url = new URL(window ? window.location.href : 'http://example.com')
+        const getParams = {
+          value: url.searchParams.get('value') ? parseInt(url.searchParams.get('value'), 16) : initialState.value,
+          isShiny: url.searchParams.get('isShiny') ? url.searchParams.get('isShiny') === 'true' : initialState.isShiny,
+          enableTest: url.searchParams.get('enableTest') ? url.searchParams.get('enableTest') === 'true' : initialState.enableTest
+        }
+        Object.assign(state, {
+          ...state,
+          ...initialState,
+          ...getParams
+        })
+      }
+
       // Returns a random value between 0x00000000 and 0xffffffff.
       function getRandomValue() {
         return Math.round(Math.random() * 0xffffffff)
@@ -270,6 +315,7 @@
       }
 
       listenFormFields()
+      setInitialState()
       update()
     </script>
   </body>
