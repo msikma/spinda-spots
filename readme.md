@@ -1,5 +1,7 @@
 This is a proof of concept for displaying Spinda's spots on its box sprite.
 
+View the [PokéSprite Spinda Painter](https://msikma.github.io/spinda-spots/) to give it a try.
+
 Spinda is a Pokémon with four spots on its face, whose coordinates are determined by its "personality value", a hidden number inside its data. In the game itself, each Spinda has the same generic box sprite (its custom spots are only visible in battle), but by using a blank sprite and a masked overlay sprite we're able to show its spots on its box sprite as well.
 
 The following sprites are used:
