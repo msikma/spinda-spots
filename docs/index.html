@@ -37,6 +37,9 @@
       width: 7em;
       display: inline-block;
     }
+    .code {
+      font-family: monospace;
+    }
     .hidden {
       visibility: hidden;
     }
@@ -45,6 +48,10 @@
     
     <div class="spinda-painter">
       <form action="index.html" method="get">
+        <p><strong>PokéSprite Spinda Painter proof of concept</strong>, by dada78641. <a href="https://github.com/msikma/spinda-spots">View the code on Github.</a></p>
+        <p>This is a proof of concept for displaying Spinda's spots on its box sprite.</p>
+        <p>Spinda is a Pokémon with four spots on its face, whose coordinates are determined by either its <em>personality value</em> (Gen 3–5) or its <em>encryption constant</em> (Gen 6–8), two hidden numbers inside its data. In the game itself, each Spinda has the same generic box sprite (its custom spots are only visible in battle), but by using a blank sprite and a masked overlay sprite we're able to show its spots on its box sprite as well.</p>
+        <p>You can view your own Spinda's <a href="./resources/personality_value.png">personality value</a> and <a href="./resources/encryption_constant.png">encryption constant</a> using a save editor like PKHeX.</p>
         <table border="2">
           <tr>
             <td>
@@ -87,7 +94,13 @@
             </td>
           </tr>
         </table>
-        <p>PokéSprite Spinda Painter proof of concept, by dada78641. <a href="https://github.com/msikma/spinda-spots">View the code on Github.</a></p>
+        <p><strong>Example values:</strong></p>
+        <ul>
+          <li><a href="#" class="example code" data-value="88889898">0x88889898</a> – shows the spots on its ears and eyes (default example)</li>
+          <li><a href="#" class="example code" data-value="6A475844">0x6A475844</a> – the exact same as its <a href="https://github.com/msikma/pokesprite/blob/master/pokemon-gen8/regular/spinda.png">generic box sprite</a></li>
+          <li><a href="#" class="example code" data-value="757DF0FF">0x757DF0FF</a> – one single big red spot in the center</a></li>
+          <li><a href="#" class="example code" data-value="FFF00F00">0xFFF00F00</a> – two spots only (the leftmost ones are too far to the left to be visible)</a></li>
+        </ul>
         <p>Inspired by the <a href="http://pokemon.thundaga.com/spinda/Spinda%20Painter.htm">Thundaga Spinda Painter</a>, originally written by elouai.com, Silly_TomcaT and GatorShark.</p>
       </form>
     </div>
@@ -98,11 +111,11 @@
         isShiny: null,
         enableTest: null,
         inputMap: {
-          input_value: 'value'
+          input_value: ['value', n => parseInt(n, 16), n => castHex(n)]
         },
         boolMap: {
-          bool_shiny: 'isShiny',
-          bool_testing: 'enableTest'
+          bool_shiny: ['isShiny'],
+          bool_testing: ['enableTest']
         },
         spotOffsets: {
           a: { xMin: 27, yMin: 31, xMax: 32, yMax: 38 },
@@ -133,16 +146,11 @@
         target.classList.toggle('type-regular', !state.isShiny)
 
         for (let [k, v] of Object.entries(state.boolMap)) {
-          document.querySelector(`#${k}`).checked = state[v];
+          document.querySelector(`#${k}`).checked = state[v[0]];
         }
 
         for (let [k, v] of Object.entries(state.inputMap)) {
-          if (k === 'input_value') {
-            document.querySelector(`#${k}`).value = castHex(state[v]);
-          }
-          else {
-            document.querySelector(`#${k}`).value = state[v];
-          }
+          document.querySelector(`#${k}`).value = v[2] ? v[2](state[v[0]]) : state[v[0]];
         }
 
         document.querySelector('#permanent_link').value = getPermLink()
@@ -245,35 +253,30 @@
         }
       }
 
-      // Listen for changes to the configuration form fields.
-      function listenFormFields() {
-        // Boolean checkboxes
-        const checkboxes = [...document.querySelectorAll('[type="checkbox"]')]
-        checkboxes.map(n => n.addEventListener('change', function() {
-          for (let [k, v] of Object.entries(state.boolMap)) {
+      // Listens for changes in form field nodes.
+      function listenNodes(selector, event, map, target) {
+        const items = [...document.querySelectorAll(selector)]
+        items.map(n => n.addEventListener(event, function() {
+          for (let [k, v] of Object.entries(map)) {
             if (this.getAttribute('id') === k) {
-              state[v] = this.checked
+              state[v[0]] = v[1] ? v[1](this[target]) : this[target]
               update()
               return
             }
           }
         }))
+      }
 
-        // Text input fields
-        const inputs = [...document.querySelectorAll('[type="text"]')]
-        inputs.map(n => n.addEventListener('input', function() {
-          for (let [k, v] of Object.entries(state.inputMap)) {
-            if (this.getAttribute('id') === k) {
-              if (k === 'input_value') {
-                state[v] = parseInt(this.value, 16)
-              }
-              else {
-                state[v] = this.value
-              }
-              update()
-              return
-            }
-          }
+      // Listen for changes to the configuration form fields.
+      function listenFormFields() {
+        listenNodes('[type="checkbox"]', 'change', state.boolMap, 'checked')
+        listenNodes('[type="text"]', 'input', state.inputMap, 'value')
+        
+        const examples = [...document.querySelectorAll('a.example')]
+        examples.map(n => n.addEventListener('click', function(ev) {
+          state.value = parseInt(this.getAttribute('data-value'), 16)
+          update()
+          ev.preventDefault()
         }))
 
         // The randomizer button
